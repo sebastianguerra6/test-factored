@@ -53,16 +53,23 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    name: str
+    position: str
+    skills: List[Skill]
+
 # FastAPI app
 app = FastAPI()
 
-# CORS middleware
+# Middleware CORS para permitir solicitudes desde el frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"] ,
+    allow_headers=["*"] ,
 )
 
 # Dependency
@@ -83,8 +90,8 @@ def init_db():
                 username="admin",
                 password="admin123",  # In a real app, this would be hashed
                 name="Sebastian Andres Guerra Rodriguez",
-                position="Ingeniero Informatico",
-                avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+                position="Senior Software Engineer",
+                avatar_url="https://api.dicebear.com/7.x/bottts/svg?seed=sebastian&backgroundColor=b6e3f4",
                 skills=json.dumps([
                     {"name": "Python", "level": 0.9},
                     {"name": "SQL", "level": 0.8},
@@ -110,6 +117,31 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     if not user or user.password != credentials.password:  # In a real app, use proper password hashing
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return {"message": "Login successful"}
+
+@app.post("/register")
+def register(user_data: RegisterRequest, db: Session = Depends(get_db)):
+    # Check if username already exists
+    if db.query(User).filter(User.username == user_data.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Generate avatar URL using DiceBear
+    avatar_url = f"https://api.dicebear.com/7.x/bottts/svg?seed={user_data.username}&backgroundColor=b6e3f4"
+    
+    # Create new user
+    new_user = User(
+        username=user_data.username,
+        password=user_data.password,  # In a real app, this would be hashed
+        name=user_data.name,
+        position=user_data.position,
+        avatar_url=avatar_url,
+        skills=json.dumps([skill.dict() for skill in user_data.skills])
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {"message": "User registered successfully"}
 
 @app.get("/profile/{username}", response_model=UserResponse)
 def get_profile(username: str, db: Session = Depends(get_db)):

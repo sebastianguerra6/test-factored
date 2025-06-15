@@ -18,7 +18,7 @@ const theme = createTheme({
 });
 
 function App() {
-    return (
+  return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
             <Router>
@@ -29,7 +29,7 @@ function App() {
                 </Routes>
             </Router>
         </ThemeProvider>
-    );
+  );
 }
 
 export default App;
